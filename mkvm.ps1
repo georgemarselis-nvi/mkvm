@@ -13,7 +13,7 @@ $hostpath="D:\Downloads"
 $medium="$hostpath\Fedora-Server-dvd-x86_64-37-1.7.iso"
 $auto_mount_point="/mnt/downloads"
 $paravirt_provider="default" # if set to default, under linux will still be set to KVM
-$dpu_hotplug="off"
+$cpu_hotplug="off"
 $bridgeadapter1="Intel(R) Ethernet Connection (2) I218-LM"
 $additions_iso="C:\Program Files\Oracle\VirtualBox\VBoxGuestAdditions.iso"
 $hostname="molly-test-1-$date"
@@ -45,7 +45,7 @@ try {
     VBoxManage modifyvm $vmname --pae="off" --long-mode="off" && Write-Output "VBoxManage modifyvm `"$vmname`" --pae=`"off`" --long-mode=`"off`""
 
     # set memory and cpu cores # --cpu-hotplug=on
-    VBoxManage modifyvm $vmname --cpus=$cpus --memory=$memory && Write-Output "VBoxManage modifyvm `"$vmname`" --cpus=`"$cpus`" --memory=`"$memory`" # --cpu-hotplug=on"
+    VBoxManage modifyvm $vmname --cpus=$cpus --memory=$memory && Write-Output "VBoxManage modifyvm `"$vmname`" --cpus=`"$cpus`" --memory=`"$memory`"" # --cpu-hotplug="on"
 
     # Set bios parameters for VM # --triple-fault-reset=on do not apply
     # guesses so far: hpet=on, x2apic=on, iommu=intel-> automatic/none, 

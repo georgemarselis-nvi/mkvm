@@ -6,15 +6,20 @@ OSTYPE="Fedora_64"
 CPUS=12
 MEMORY=16384
 VRAM=256
-FILENAME="${BASEFOLDER}/media/${VMNAME}-$(date --iso).vdi"
+$DATE=$(date --iso)
+FILENAME="${BASEFOLDER}/media/${VMNAME}-$date.vdi"
 DISKSIZE=120000
 HOSTPATH='/home/gmarselis/Downloads'
 MEDIUM="$HOSTPATH/Fedora-Server-dvd-x86_64-37-1.7.iso"
-#MEDIUM="/home/gmarselis/Downloads/Fedora-Workstation-Live-x86_64-37-1.7.iso"
 AUTO_MOUNT_POINT="/mnt/downloads"
 PARAVIRT_PROVIDER="kvm" # if set to default, under linux will still be set to KVM
 CPU_HOTPLUG="off"
 BRIDGEDADAPTER1="$(ifconfig | awk -F: '/^en/ { print $1 }')"
+ADDITIONS_ISO="/home/gmarselis/Downloads/VBoxGuestAdditions_7.0.6.iso"
+HOSTNAME="molly-test-1-$date"
+MACADDRESS="080027C48B18"
+FQDN="$HOSTNAME.marsel.is"
+
 
 # Delete the registered VM
 /usr/bin/VBoxManage unregistervm "${VMNAME}" --delete 2> /dev/null
@@ -36,14 +41,9 @@ vboxmanage closemedium disk "${FILENAME}" --delete 2> /dev/null
 	&& echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --mouse=\"usb\" --keyboard=\"usb\" --clipboard-mode=\"bidirectional\" --drag-and-drop=\"bidirectional\" --monitor-count=\"1\" --usb-ehci=\"off\" --usb-ohci=\"off\" --usb-xhci=\"on\""
 [[ $? -gt 0 ]] && exit
 
-# set memory, video controler and video memory
-/usr/bin/VBoxManage modifyvm "${VMNAME}" --graphicscontroller="VMSVGA" --memory="${MEMORY}" --vram="${VRAM}" --accelerate-3d="on" --accelerate-2d-video="on" \
-	&& echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --graphicscontroller=\"VMSVGA\" --memory=\"${MEMORY}\" --vram=\"${VRAM}\" --accelerate-3d=\"on\" --accelerate-2d-video=\"on\""
-[[ $? -gt 0 ]] && exit
-
-# Disable all audio
-/usr/bin/VBoxManage modifyvm "${VMNAME}" --audio-driver="none" --audio-in="off" --audio-out="off" \
-	&& echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --audio=\"none\" --audio-in=\"off\" --audio-out=\"off\""
+# set video controler and video memory
+/usr/bin/VBoxManage modifyvm "${VMNAME}" --graphicscontroller="VMSVGA" --vram="${VRAM}" --accelerate-3d="on" --accelerate-2d-video="on" \
+	&& echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --graphicscontroller=\"VMSVGA\" --vram=\"${VRAM}\" --accelerate-3d=\"on\" --accelerate-2d-video=\"on\""
 [[ $? -gt 0 ]] && exit
 
 # Turn PAE off # we only need this if we are booting a 32-bit OS and need more than 4GB of RAM
@@ -51,14 +51,31 @@ vboxmanage closemedium disk "${FILENAME}" --delete 2> /dev/null
 	&& echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --pae=\"off\" --long-mode=\"off\""
 [[ $? -gt 0 ]] && exit
 
+
+# set memory and cpu cores # --cpu-hotplug=on
+/usr/bin/VBoxManage modifyvm "${VMNAME}" --cpus="${CPUS}" --memory="${MEMORY}" \
+	&& Write-Output "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --cpus=\"${CPUS}\" --memory=\"${MEMORY}\"" # --cpu-hotplug="on"
+[[ $? -gt 0 ]] && exit
+
+# Set bios parameters for VM # --triple-fault-reset=on do not apply
+# guesses so far: hpet=on, x2apic=on, iommu=intel-> automatic/none, 
+/usr/bin/VBoxManage modifyvm "${VMNAME}" --description="Work VM for NVI" --acpi="on" --ioapic="on" --cpu-profile="host" --hpet="on" --hwvirtex="on" --apic="on" --x2apic="on" --paravirt-provider="${PARAVIRT_PROVIDER}" --nested-paging="on" --largepages="on" --vtx-vpid="on" --vtx-ux="on" --nested-hw-virt="off" --chipset="ich9" --iommu="intel" --tpm-type="2.0" --bios-apic="x2apic" --rtc-use-utc="on" \
+	&& echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --description=\"Work VM for NVI\" --acpi=\"on\" --ioapic=\"on\" --cpu-profile=\"host\" --hpet=\"on\" --hwvirtex=\"on\" --apic=\"on\" --x2apic=\"on\" --paravirt-provider=\"${PARAVIRT_PROVIDER}\" --nested-paging=\"on\" --largepages=\"on\" --vtx-vpid=\"on\" --vtx-ux=\"on\" --nested-hw-virt=\"off\" --chipset=\"ich9\" --iommu=\"intel\" --tpm-type=\"2.0\" --bios-apic=\"x2apic\" --rtc-use-utc=\"on\""
+
+# Set the boot menu
+# /usr/bin/VBoxManage modifyvm ${VMNAME} --bios-boot-menu="disabled"
+/usr/bin/VBoxManage modifyvm ${VMNAME} --bios-boot-menu="menuonly"
+# /usr/bin/VBoxManage modifyvm ${VMNAME} --bios-boot-menu="messageandmenu"
+
 # Spectre attacks, mitigatte 
 /usr/bin/VBoxManage modifyvm "${VMNAME}" --ibpb-on-vm-entry="on" --ibpb-on-vm-exit="on" --spec-ctrl="on" --l1d-flush-on-sched="off" \
 	&& echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --ibpb-on-vm-entry=\"on\" --ibpb-on-vm-exit=\"on\" --spec-ctrl=\"on\" --l1d-flush-on-sched=\"off\""
 [[ $? -gt 0 ]] && exit
 
-# Parameters for VM --cpu-hotplug=${CPU_HOTPLUG} --cpu-profile=host 
-/usr/bin/VBoxManage modifyvm "${VMNAME}" --description="Work VM for NVI" --ioapic="on" --acpi="on" --cpus=${CPUS} --hpet="on" --hwvirtex="on" --apic="on" --x2apic="on" --paravirt-provider="${PARAVIRT_PROVIDER}" --nested-paging="on" --largepages="on" --vtx-vpid="on" --vtxux="on" --chipset="ich9" --iommu="intel" --tpm-type="2.0" --bios-apic="x2apic" \
-	&& echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --description=\"Work VM for NVI\" --ioapic=\"on\" --acpi=\"on\" --cpus=12 --cpu-hotplug=\"${CPU_HOTPLUG}\" --cpu-profile=\"host\" --hpet=\"on\" --hwvirtex=\"on\" --apic=\"on\" --x2apic=\"on\" --paravirt-provider=\"${PARAVIRT_PROVIDER}\" --nested-paging=\"on\" --largepages=\"on\" --vtx-vpid=\"on\" --chipset=\"ich9\" --iommu=\"intel\" --tpm-type=\"2.0\" --bios-apic=\"x2apic\""
+# Disable all audio # regardless of whether you give --audio-controller or not, the default value is ac97. Furthermore, the --audio="none" is beind depreciated in the future.
+# i'm stucking it in now, so i can completely disable the audiot and we will see.
+/usr/bin/VBoxManage modifyvm "${VMNAME}" --audio="none" --audio-driver="none" --audio-controller="ac97" --audio-in="off" --audio-out="off" \
+	&& echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --audio=\"none\" --audio-driver=\"none\" --audio-controller=\"ac97\" --audio-in=\"off\" --audio-out=\"off\""
 [[ $? -gt 0 ]] && exit
 
 # Set NIC1 to bridged # ifconfig | awk -F: '/^en/ { print $1 }' for the name of the interface
