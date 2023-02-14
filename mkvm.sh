@@ -6,7 +6,7 @@ OSTYPE="Fedora_64"
 CPUS=12
 MEMORY=16384
 VRAM=256
-$DATE=$(date --iso)
+DATE="$(date --iso)"
 FILENAME="${BASEFOLDER}/media/${VMNAME}-$date.vdi"
 DISKSIZE=120000
 HOSTPATH='/home/gmarselis/Downloads'
@@ -14,11 +14,12 @@ MEDIUM="$HOSTPATH/Fedora-Server-dvd-x86_64-37-1.7.iso"
 AUTO_MOUNT_POINT="/mnt/downloads"
 PARAVIRT_PROVIDER="kvm" # if set to default, under linux will still be set to KVM
 CPU_HOTPLUG="off"
-BRIDGEDADAPTER1="$(ifconfig | awk -F: '/^en/ { print $1 }')"
+BRIDGEADAPTER1="$(ifconfig | awk -F: '/^en/ { print $1 }')"
 ADDITIONS_ISO="/home/gmarselis/Downloads/VBoxGuestAdditions_7.0.6.iso"
 HOSTNAME="molly-test-1-$date"
 MACADDRESS="080027C48B18"
 FQDN="$HOSTNAME.marsel.is"
+SHUTDOWNTIMEOUT="5"
 
 
 # Delete the registered VM
@@ -54,7 +55,7 @@ vboxmanage closemedium disk "${FILENAME}" --delete 2> /dev/null
 
 # set memory and cpu cores # --cpu-hotplug=on
 /usr/bin/VBoxManage modifyvm "${VMNAME}" --cpus="${CPUS}" --memory="${MEMORY}" \
-	&& Write-Output "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --cpus=\"${CPUS}\" --memory=\"${MEMORY}\"" # --cpu-hotplug="on"
+	&& echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --cpus=\"${CPUS}\" --memory=\"${MEMORY}\"" # --cpu-hotplug="on"
 [[ $? -gt 0 ]] && exit
 
 # Set bios parameters for VM # --triple-fault-reset=on do not apply
@@ -63,9 +64,9 @@ vboxmanage closemedium disk "${FILENAME}" --delete 2> /dev/null
 	&& echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --description=\"Work VM for NVI\" --acpi=\"on\" --ioapic=\"on\" --cpu-profile=\"host\" --hpet=\"on\" --hwvirtex=\"on\" --apic=\"on\" --x2apic=\"on\" --paravirt-provider=\"${PARAVIRT_PROVIDER}\" --nested-paging=\"on\" --largepages=\"on\" --vtx-vpid=\"on\" --vtx-ux=\"on\" --nested-hw-virt=\"off\" --chipset=\"ich9\" --iommu=\"intel\" --tpm-type=\"2.0\" --bios-apic=\"x2apic\" --rtc-use-utc=\"on\""
 
 # Set the boot menu
-# /usr/bin/VBoxManage modifyvm ${VMNAME} --bios-boot-menu="disabled"
-/usr/bin/VBoxManage modifyvm ${VMNAME} --bios-boot-menu="menuonly"
-# /usr/bin/VBoxManage modifyvm ${VMNAME} --bios-boot-menu="messageandmenu"
+# /usr/bin/VBoxManage modifyvm "${VMNAME} --bios-boot-menu="disabled"
+# /usr/bin/VBoxManage modifyvm "${VMNAME}" --bios-boot-menu="menuonly"
+/usr/bin/VBoxManage modifyvm "${VMNAME}" --bios-boot-menu="messageandmenu"
 
 # Spectre attacks, mitigatte 
 /usr/bin/VBoxManage modifyvm "${VMNAME}" --ibpb-on-vm-entry="on" --ibpb-on-vm-exit="on" --spec-ctrl="on" --l1d-flush-on-sched="off" \
@@ -105,7 +106,7 @@ vboxmanage closemedium disk "${FILENAME}" --delete 2> /dev/null
 
 # Set NIC1 to bridged # ifconfig | awk -F: '/^en/ { print $1 }' for the name of the interface
 # --nic-boot-prio1="1" -> 0 is the default, 1 is the highest, 3, 4 lower; order therefore is [ 1, 0, 2, 3, 4]
-/usr/bin/VBoxManage modifyvm ${VMNAME} --nic1="bridged"  --bridgeadapter1="${BRIDGEADAPTER1}" --cable-connected1="on" --nic-boot-prio1="1" --nic-promisc1="deny" --mac-address1="$MACADDRESS" \
+/usr/bin/VBoxManage modifyvm "${VMNAME}" --nic1="bridged"  --bridgeadapter1="${BRIDGEADAPTER1}" --cable-connected1="on" --nic-boot-prio1="1" --nic-promisc1="deny" --mac-address1="$MACADDRESS" \
 	&& echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --nic1=\"bridged\"  --bridgeadapter1=\"${BRIDGEADAPTER1}\" --cable-connected1=\"on\" --nic-boot-prio1=\"1\" --nic-promisc1=\"deny\" --mac-address1=\"$MACADDRESS\""
 [[ $? -gt 0 ]] && exit
 
@@ -138,9 +139,11 @@ vboxmanage closemedium disk "${FILENAME}" --delete 2> /dev/null
     # --teleporter-port="6000" Port 6000 is set by me, given in the manual as an example, but not official and/or standardized
     # VBoxManage modifyvm $vmname --teleporter="on" --teleporter-port="6000" --teleporter-address="0.0.0.0" --teleporter-password=******* --teleporter-password-file="/home/captaincrunch/password.txt" --cpuid-portability-level=0
 
-# start vm
+# start vm, to test settings
 /usr/bin/VBoxManage startvm "${VMNAME}" #&& echo "/usr/bin/VBoxManage startvm \"${VMNAME}\""
-
+sleep ${SHUTDOWNTIMEOUT}
+# terminate VM
+/usr/bin/VBoxManage controlvm "${VMNAME}" poweroff
 
 # Unattended Debian and debian-like systems install
     # VBoxManage unattended detect <--iso=install-iso> [--machine-readable]
@@ -157,7 +160,7 @@ vboxmanage closemedium disk "${FILENAME}" --delete 2> /dev/null
     # Unattended-<GUID>-vboxpostinstall.sh
 
     # Fedora 37
-    # VBoxManage unattended install "${VMNAME}" --iso="$medium" --user="gmarselis" --password="12345" --full-user-name="George Marselis" --install-additions --additions-iso="$additions_iso" --locale="en_US" --country="NO" --time-zone="UTC+1" --hostname="$fqdn" --language="en_US" --auxiliary-base-path="D:\kot"&& Write-Output "VBoxManage unattended install `"$vmname`" --iso=`"$medium`" --user=`"gmarselis`" --password=`"12345`" --full-user-name=`"George Marselis`" --install-additions --additions-iso=`"$additions_iso`" --locale=`"en_US`" --country=`"NO`" --time-zone=`"UTC+1`" --hostname=`"$fqdn`" --dry-run --language=`"en_US`""
+    # VBoxManage unattended install "${VMNAME}" --iso="$medium" --user="gmarselis" --password="12345" --full-user-name="George Marselis" --install-additions --additions-iso="$additions_iso" --locale="en_US" --country="NO" --time-zone="UTC+1" --hostname="$fqdn" --language="en_US" --auxiliary-base-path="D:\kot"&& echo "VBoxManage unattended install `"$vmname`" --iso=`"$medium`" --user=`"gmarselis`" --password=`"12345`" --full-user-name=`"George Marselis`" --install-additions --additions-iso=`"$additions_iso`" --locale=`"en_US`" --country=`"NO`" --time-zone=`"UTC+1`" --hostname=`"$fqdn`" --dry-run --language=`"en_US`""
 
     # Debian Buster
     #/usr/bin/VBoxManage unattended install "${VMNAME}" --iso="/home/gmarselis/Downloads/debian-11.6.0-amd64-netinst.iso" --user="gmarselis" --password="12345" --full-user-name="George Marselis" --install-additions --additions-iso="${ADDITIONS_ISO}" --locale="en_US" --country="NO" --time-zone="UTC+1" --hostname="$fqdn" --dry-run --language="en_US" && echo "/usr/bin/VBoxManage unattended install \"${VMNAME}\" --iso=\"/home/gmarselis/Downloads/debian-11.6.0-amd64-netinst.iso\" --user=\"gmarselis\" --password=\"12345\" --full-user-name=\"George Marselis\" --install-additions --additions-iso=\"${ADDITIONS_ISO}\" --locale=\"en_US\" --country=\"NO\" --time-zone=\"UTC+1\" --hostname=\"${FQDN}\" --dry-run --language=\"en_US\""
