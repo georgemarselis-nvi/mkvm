@@ -78,21 +78,15 @@ vboxmanage closemedium disk "${FILENAME}" --delete 2> /dev/null
 	&& echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --audio=\"none\" --audio-driver=\"none\" --audio-controller=\"ac97\" --audio-in=\"off\" --audio-out=\"off\""
 [[ $? -gt 0 ]] && exit
 
-# Set NIC1 to bridged # ifconfig | awk -F: '/^en/ { print $1 }' for the name of the interface
-/usr/bin/VBoxManage modifyvm "${VMNAME}" --nic1="bridged"  --bridgeadapter1="${BRIDGEDADAPTER1}" \
-	&& echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --nic1=\"bridged\" --bridgeadapter1=\"${BRIDGEDADAPTER1}\""
-[[ $? -gt 0 ]] && exit
-
 # Create a non-fixed, single, disk image
 /usr/bin/VBoxManage createmedium disk --filename="${FILENAME}" --size="${DISKSIZE}" --format="VDI" --variant="Standard" \
-	&& echo "/usr/bin/VBoxManage createmedium disk --filename=\"${FILENAME}\" --size=\"${DISKSIZE}\" --format=VDI --variant=Standard"
+	&& echo "/usr/bin/VBoxManage createmedium disk --filename=\"${FILENAME}\" --size=\"${DISKSIZE}\" --format=\"VDI\" --variant=\"Standard\""
 [[ $? -gt 0 ]] && exit
 
 # Create an NVME controller for the disk
 /usr/bin/VBoxManage storagectl "${VMNAME}" --controller="NVMe" --add="pcie" --name="NVME Controller" --hostiocache="on" --bootable="on" \
 	&& echo "/usr/bin/VBoxManage storagectl \"${VMNAME}\" --controller=\"NVMe\" --add=\"pcie\" --name=\"NVME Controller\" --hostiocache=\"on\" --bootable=\"on\""
 [[ $? -gt 0 ]] && exit
-
 
 # Create a SATA controller for the dvd
 /usr/bin/VBoxManage storagectl "${VMNAME}" --controller="IntelAhci" --add="sata" --name="SATA Controller" --portcount="1" --hostiocache="on" --bootable="on" \
@@ -109,7 +103,13 @@ vboxmanage closemedium disk "${FILENAME}" --delete 2> /dev/null
 	&& echo "/usr/bin/VBoxManage storageattach \"${VMNAME}\" --storagectl=\"SATA Controller\" --device=\"0\" --port=\"0\" --type=\"dvddrive\" --medium=\"${MEDIUM}\""
 [[ $? -gt 0 ]] && exit
 
-# Set boot order: PXEboot from net, dvd, disk and none
+# Set NIC1 to bridged # ifconfig | awk -F: '/^en/ { print $1 }' for the name of the interface
+# --nic-boot-prio1="1" -> 0 is the default, 1 is the highest, 3, 4 lower; order therefore is [ 1, 0, 2, 3, 4]
+/usr/bin/VBoxManage modifyvm ${VMNAME} --nic1="bridged"  --bridgeadapter1="${BRIDGEADAPTER1}" --cable-connected1="on" --nic-boot-prio1="1" --nic-promisc1="deny" --mac-address1="$MACADDRESS" \
+	&& echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --nic1=\"bridged\"  --bridgeadapter1=\"${BRIDGEADAPTER1}\" --cable-connected1=\"on\" --nic-boot-prio1=\"1\" --nic-promisc1=\"deny\" --mac-address1=\"$MACADDRESS\""
+[[ $? -gt 0 ]] && exit
+
+# Set boot order: PXEboot from net, dvd, disk and none # --bios-pxe-debug="on"
 /usr/bin/VBoxManage modifyvm "${VMNAME}" --boot1 "net" --boot2 "dvd" --boot3 "disk" --boot4 "none" \
 	&& echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --boot1 \"net\" --boot2 \"dvd\" --boot3 \"disk\" --boot4 \"none\""
 [[ $? -gt 0 ]] && exit
@@ -132,5 +132,37 @@ vboxmanage closemedium disk "${FILENAME}" --delete 2> /dev/null
 	&& echo "/usr/bin/VBoxManage sharedfolder add \"${VMNAME}\" --name=\"downloads\" --hostpath=\"${HOSTPATH}\" --automount --auto-mount-point=\"${AUTO_MOUNT_POINT}\""
 [[ $? -gt 0 ]] && exit
 
+# for future use
+    # --teleporter-address=0.0.0.0 allows VBox to listen to *all* requests for teleportation. Limit as needed
+    # --cpuid-portability-level=0 makes avilable all CPU features to the host? but there is no guaratnee what level presents what feature?
+    # --teleporter-port="6000" Port 6000 is set by me, given in the manual as an example, but not official and/or standardized
+    # VBoxManage modifyvm $vmname --teleporter="on" --teleporter-port="6000" --teleporter-address="0.0.0.0" --teleporter-password=******* --teleporter-password-file="/home/captaincrunch/password.txt" --cpuid-portability-level=0
+
 # start vm
 /usr/bin/VBoxManage startvm "${VMNAME}" #&& echo "/usr/bin/VBoxManage startvm \"${VMNAME}\""
+
+
+# Unattended Debian and debian-like systems install
+    # VBoxManage unattended detect <--iso=install-iso> [--machine-readable]
+    # Detects the guest operating system (OS) on the specified installation ISO and displays the result.
+    # This can be used as input when creating a VM for the ISO to be installed in.
+
+    # --package-selection-adjustment="minimal"  --image-index="number" --script-template="file" --post-install-template="file" --post-install-command="command" --extra-install-kernel-parameters="params" 
+
+    # --auxiliary-base-path="path"  # useful only for Debian
+    # Running VBoxManage unattended install creates (always?) four files in the Virtual Box file folder:
+    # Unattended-<GUID>-aux-iso.viso
+    # Unattended-<GUID>-grub.cfg
+    # Unattended-<GUID>-preseed.cfg
+    # Unattended-<GUID>-vboxpostinstall.sh
+
+    # Fedora 37
+    # VBoxManage unattended install "${VMNAME}" --iso="$medium" --user="gmarselis" --password="12345" --full-user-name="George Marselis" --install-additions --additions-iso="$additions_iso" --locale="en_US" --country="NO" --time-zone="UTC+1" --hostname="$fqdn" --language="en_US" --auxiliary-base-path="D:\kot"&& Write-Output "VBoxManage unattended install `"$vmname`" --iso=`"$medium`" --user=`"gmarselis`" --password=`"12345`" --full-user-name=`"George Marselis`" --install-additions --additions-iso=`"$additions_iso`" --locale=`"en_US`" --country=`"NO`" --time-zone=`"UTC+1`" --hostname=`"$fqdn`" --dry-run --language=`"en_US`""
+
+    # Debian Buster
+    #/usr/bin/VBoxManage unattended install "${VMNAME}" --iso="/home/gmarselis/Downloads/debian-11.6.0-amd64-netinst.iso" --user="gmarselis" --password="12345" --full-user-name="George Marselis" --install-additions --additions-iso="${ADDITIONS_ISO}" --locale="en_US" --country="NO" --time-zone="UTC+1" --hostname="$fqdn" --dry-run --language="en_US" && echo "/usr/bin/VBoxManage unattended install \"${VMNAME}\" --iso=\"/home/gmarselis/Downloads/debian-11.6.0-amd64-netinst.iso\" --user=\"gmarselis\" --password=\"12345\" --full-user-name=\"George Marselis\" --install-additions --additions-iso=\"${ADDITIONS_ISO}\" --locale=\"en_US\" --country=\"NO\" --time-zone=\"UTC+1\" --hostname=\"${FQDN}\" --dry-run --language=\"en_US\""
+
+
+# Autostarting VM During Host System Boot
+    # the "1" is set by me. There are no suggestions in the manual.
+    # VBoxManage modifyvm $vmname --autostart-enabled="on" --autostart-delay="2"
