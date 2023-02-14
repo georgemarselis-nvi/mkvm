@@ -3,7 +3,7 @@
 BASEFOLDER="/home/gmarselis/VirtualBox VMs"
 VMNAME="Fedora 37-1-test"
 OSTYPE="Fedora_64"
-CPUS=12
+CPUS=2
 MEMORY=16384
 VRAM=256
 DATE="$(date --iso)"
