@@ -3,7 +3,7 @@
 BASEFOLDER="/home/gmarselis/VirtualBox VMs"
 VMNAME="Fedora 37-1-test"
 OSTYPE="Fedora_64"
-CPUS=2
+CPUS=12
 MEMORY=16384
 VRAM=256
 DATE="$(date --iso)"
@@ -33,8 +33,8 @@ vboxmanage closemedium disk "${FILENAME}" --delete 2> /dev/null
 [[ $? -gt 0 ]] && exit
 
 # Give it EFI boot # EFI64 is required *only* for MacOS
-/usr/bin/VBoxManage modifyvm "${VMNAME}" --firmware="efi32" \
-	&& echo "/usr/bin/VBoxManage modifyvm \""${VMNAME}"\" --firmware=\"efi32\""
+/usr/bin/VBoxManage modifyvm "${VMNAME}" --firmware="efi" \
+	&& echo "/usr/bin/VBoxManage modifyvm \""${VMNAME}"\" --firmware=\"efi\""
 [[ $? -gt 0 ]] && exit
 
 # Set mouse, keyboard and usb settings
@@ -48,20 +48,20 @@ vboxmanage closemedium disk "${FILENAME}" --delete 2> /dev/null
 [[ $? -gt 0 ]] && exit
 
 # Turn PAE off # we only need this if we are booting a 32-bit OS and need more than 4GB of RAM
-/usr/bin/VBoxManage modifyvm "${VMNAME}" --pae="off" --long-mode="off" \
-	&& echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --pae=\"off\" --long-mode=\"off\""
+/usr/bin/VBoxManage modifyvm "${VMNAME}" --pae="on" --long-mode="on" \
+	&& echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --pae=\"on\" --long-mode=\"on\""
 [[ $? -gt 0 ]] && exit
 
 
 # set memory and cpu cores # --cpu-hotplug=on
-/usr/bin/VBoxManage modifyvm "${VMNAME}" --cpus="${CPUS}" --memory="${MEMORY}" \
-	&& echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --cpus=\"${CPUS}\" --memory=\"${MEMORY}\"" # --cpu-hotplug="on"
+/usr/bin/VBoxManage modifyvm "${VMNAME}" --cpus="${CPUS}" --memory="${MEMORY}" --cpu-hotplug="on" \
+	&& echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --cpus=\"${CPUS}\" --memory=\"${MEMORY}\" --cpu-hotplug=\"on\"" # --cpu-hotplug="on"
 [[ $? -gt 0 ]] && exit
 
 # Set bios parameters for VM # --triple-fault-reset=on do not apply
-# guesses so far: hpet=on, x2apic=on, iommu=intel-> automatic/none, 
-/usr/bin/VBoxManage modifyvm "${VMNAME}" --description="Work VM for NVI" --acpi="on" --ioapic="on" --cpu-profile="host" --hpet="on" --hwvirtex="on" --apic="on" --x2apic="on" --paravirt-provider="${PARAVIRT_PROVIDER}" --nested-paging="on" --largepages="on" --vtx-vpid="on" --vtx-ux="on" --nested-hw-virt="off" --chipset="ich9" --iommu="intel" --tpm-type="2.0" --bios-apic="x2apic" --rtc-use-utc="on" \
-	&& echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --description=\"Work VM for NVI\" --acpi=\"on\" --ioapic=\"on\" --cpu-profile=\"host\" --hpet=\"on\" --hwvirtex=\"on\" --apic=\"on\" --x2apic=\"on\" --paravirt-provider=\"${PARAVIRT_PROVIDER}\" --nested-paging=\"on\" --largepages=\"on\" --vtx-vpid=\"on\" --vtx-ux=\"on\" --nested-hw-virt=\"off\" --chipset=\"ich9\" --iommu=\"intel\" --tpm-type=\"2.0\" --bios-apic=\"x2apic\" --rtc-use-utc=\"on\""
+# iommu=intel-> none. We do not need PCIe passthrough
+/usr/bin/VBoxManage modifyvm "${VMNAME}" --description="Work VM for NVI" --acpi="on" --ioapic="on" --cpu-profile="host" --hpet="on" --hwvirtex="on" --apic="on" --x2apic="on" --paravirt-provider="${PARAVIRT_PROVIDER}" --nested-paging="on" --largepages="on" --vtx-vpid="on" --vtx-ux="on" --nested-hw-virt="off" --chipset="ich9" --iommu="none" --tpm-type="2.0" --bios-apic="x2apic" --rtc-use-utc="on" \
+	&& echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --description=\"Work VM for NVI\" --acpi=\"on\" --ioapic=\"on\" --cpu-profile=\"host\" --hpet=\"on\" --hwvirtex=\"on\" --apic=\"on\" --x2apic=\"on\" --paravirt-provider=\"${PARAVIRT_PROVIDER}\" --nested-paging=\"on\" --largepages=\"on\" --vtx-vpid=\"on\" --vtx-ux=\"on\" --nested-hw-virt=\"off\" --chipset=\"ich9\" --iommu=\"none\" --tpm-type=\"2.0\" --bios-apic=\"x2apic\" --rtc-use-utc=\"on\""
 
 # Set the boot menu
 # /usr/bin/VBoxManage modifyvm "${VMNAME} --bios-boot-menu="disabled"

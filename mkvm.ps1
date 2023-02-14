@@ -3,7 +3,7 @@ $ErrorActionPreference = "Stop"
 $basefolder="D:\VirtualBox VM"
 $vmname="Fedora 37-1-test"
 $ostype="Fedora_64"
-$cpus=4
+$cpus=12
 $memory=16384
 $vram=256
 $date=(Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
@@ -19,6 +19,7 @@ $additions_iso="C:\Program Files\Oracle\VirtualBox\VBoxGuestAdditions.iso"
 $hostname="molly-test-1-$date"
 $macaddress="080027C48B18"
 $fqdn="$hostname.marsel.is"
+$vmbootdelay=5
 
 
 try {
@@ -32,8 +33,8 @@ try {
     # Register VM
     VBoxManage createvm --name=$vmname --ostype=$ostype --register --basefolder=$basefolder && Write-Output "VBoxManage createvm --name=`"$vmname`" --ostype=`"$ostype`" --register --basefolder=`"$basefolder`""
 
-    # Give it EFI boot # EFI64 is required *only* for MacOS
-    VBoxManage modifyvm $vmname --firmware="efi32" && Write-Output "VBoxManage modifyvm `"$vmname`" --firmware=`"efi32`""
+    # Give it EFI boot # EFI64 is required *only* for MacOS # note: EFI, not EFI32
+    VBoxManage modifyvm $vmname --firmware="EFI" && Write-Output "VBoxManage modifyvm `"$vmname`" --firmware=`"EFI`""
 
     # Set mouse, keyboard and usb settings
     VBoxManage modifyvm $vmname --mouse="usb" --keyboard="usb" --clipboard-mode="bidirectional" --drag-and-drop="bidirectional" --monitor-count="1" --usb-ehci="off" --usb-ohci="off" --usb-xhci="on" && Write-Output "VBoxManage modifyvm `"$vmname`" --mouse=`"usb`" --keyboard=`"usb`" --clipboard-mode=`"bidirectional`" --drag-and-drop=`"bidirectional`" --monitor-count=`"1`" --usb-ehci=`"off`" --usb-ohci=`"off`" --usb-xhci=`"on`""
@@ -41,20 +42,23 @@ try {
     # set video controler and video memory
     VBoxManage modifyvm $vmname --graphicscontroller="VMSVGA" --vram=$vram --accelerate-3d="on" --accelerate-2d-video="on" && Write-Output "VBoxManage modifyvm `"$vmname`" --graphicscontroller=`"VMSVGA`" --vram=`"$vram`" --accelerate-3d=`"on`" --accelerate-2d-video=`"on`""
 
-    # Turn PAE off # we only need this if we are booting a 32-bit OS and need more than 4GB of RAM
-    VBoxManage modifyvm $vmname --pae="off" --long-mode="off" && Write-Output "VBoxManage modifyvm `"$vmname`" --pae=`"off`" --long-mode=`"off`""
+    # Turn PAE on # 
+    # --long-mode="on" https://en.wikipedia.org/wiki/Long_mode We are running in 64-bit, compatibility mode
+    # https://0xax.gitbooks.io/linux-insides/content/Booting/linux-bootstrap-4.html : according to this,
+    #   we need to turn on both PAE and long mode to boot into true 64bit mode. 
+    VBoxManage modifyvm $vmname --pae="on" --long-mode="on" && Write-Output "VBoxManage modifyvm `"$vmname`" --pae=`"on`" --long-mode=`"on`""
 
     # set memory and cpu cores # --cpu-hotplug=on
-    VBoxManage modifyvm $vmname --cpus=$cpus --memory=$memory && Write-Output "VBoxManage modifyvm `"$vmname`" --cpus=`"$cpus`" --memory=`"$memory`"" # --cpu-hotplug="on"
+    VBoxManage modifyvm $vmname --cpus=$cpus --memory=$memory --cpu-hotplug="on" && Write-Output "VBoxManage modifyvm `"$vmname`" --cpus=`"$cpus`" --memory=`"$memory`" --cpu-hotplug=`"on`"" # 
 
     # Set bios parameters for VM # --triple-fault-reset=on do not apply
-    # guesses so far: hpet=on, x2apic=on, iommu=intel-> automatic/none, 
-    VBoxManage modifyvm $vmname --description="Work VM for NVI" --acpi="on" --ioapic="on" --cpu-profile="host" --hpet="on" --hwvirtex="on" --apic="on" --x2apic="on" --paravirt-provider=$paravirt_provider --nested-paging="on" --largepages="on" --vtx-vpid="on" --vtx-ux="on" --nested-hw-virt="off" --chipset="ich9" --iommu="intel" --tpm-type="2.0" --bios-apic="x2apic" --rtc-use-utc="on" && Write-Output " VBoxManage modifyvm `"$vmname`" --description=`"Work VM for NVI`" --acpi=`"on`" --ioapic=`"on`" --cpu-profile=`"host`" --hpet=`"on`" --hwvirtex=`"on`" --apic=`"on`" --x2apic=`"on`" --paravirt-provider=$paravirt_provider --nested-paging=`"on`" --largepages=`"on`" --vtx-vpid=`"on`" --vtx-ux=`"on`" --nested-hw-virt=`"off`" --chipset=`"ich9`" --iommu=`"intel`" --tpm-type=`"2.0`" --bios-apic=`"x2apic`"" 
+    # iommu=none stays that way
+    VBoxManage modifyvm $vmname --description="Work VM for NVI" --acpi="on" --ioapic="on" --cpu-profile="host" --hpet="on" --hwvirtex="on" --apic="on" --x2apic="on" --paravirt-provider=$paravirt_provider --nested-paging="on" --largepages="on" --vtx-vpid="on" --vtx-ux="on" --nested-hw-virt="off" --chipset="ich9" --iommu="None" --tpm-type="2.0" --bios-apic="x2apic" --rtc-use-utc="on" && Write-Output " VBoxManage modifyvm `"$vmname`" --description=`"Work VM for NVI`" --acpi=`"on`" --ioapic=`"on`" --cpu-profile=`"host`" --hpet=`"on`" --hwvirtex=`"on`" --apic=`"on`" --x2apic=`"on`" --paravirt-provider=$paravirt_provider --nested-paging=`"on`" --largepages=`"on`" --vtx-vpid=`"on`" --vtx-ux=`"on`" --nested-hw-virt=`"off`" --chipset=`"ich9`" --iommu=`"None`" --tpm-type=`"2.0`" --bios-apic=`"x2apic`"" 
 
     # Set the boot menu
     # VBoxManage modifyvm $vmname --bios-boot-menu="disabled"
-    VBoxManage modifyvm $vmname --bios-boot-menu="menuonly"
-    # VBoxManage modifyvm $vmname --bios-boot-menu="messageandmenu"
+    # VBoxManage modifyvm $vmname --bios-boot-menu="menuonly"
+    VBoxManage modifyvm $vmname --bios-boot-menu="messageandmenu"
 
     # Spectre attacks, mitigatte 
     VBoxManage modifyvm $vmname --ibpb-on-vm-entry="on" --ibpb-on-vm-exit="on" --spec-ctrl="off" --l1d-flush-on-sched="off" --l1d-flush-on-vm-entry="off" --mds-clear-on-sched="off" --mds-clear-on-vm-entry="off" && Write-Output "VBoxManage modifyvm `"$vmname`" --ibpb-on-vm-entry=`"on`" --ibpb-on-vm-exit=`"on`" --spec-ctrl=`"off`" --l1d-flush-on-sched=`"off`" --l1d-flush-on-vm-entry=`"off`""
@@ -106,6 +110,8 @@ try {
 
     # start vm
     VBoxManage startvm $vmname #&& Write-Output "VBoxManage startvm `"$vmname`""
+    Start-Sleep -Seconds $vmbootdelay
+    VBoxManage controlvm $vmname poweroff
 
     # Unattended install
     # --user=vboxuser     , default
@@ -131,7 +137,6 @@ try {
 
     # Debian Buster
     # VBoxManage unattended install $vmname --iso="D:\Downloads\debian-10.1.0-amd64-netinst.iso" --user="gmarselis" --password="12345" --full-user-name="George Marselis" --install-additions --additions-iso="$additions_iso" --locale="en_US" --country="NO" --time-zone="UTC+1" --hostname="$fqdn" --dry-run --language="en_US" && Write-Output "VBoxManage unattended install `"$vmname`" --iso=`"D:\Downloads\debian-10.1.0-amd64-netinst.iso`" --user=`"gmarselis`" --password=`"12345`" --full-user-name=`"George Marselis`" --install-additions --additions-iso=`"$additions_iso`" --locale=`"en_US`" --country=`"NO`" --time-zone=`"UTC+1`" --hostname=`"$fqdn`" --dry-run --language=`"en_US`""
-
 
 
     # Autostarting VM During Host System Boot
