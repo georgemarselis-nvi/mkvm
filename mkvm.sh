@@ -6,25 +6,25 @@
 #   check what instance of VM we are on
 #       increment by 1
 
-BASEFOLDER="/home/gmarselis/VirtualBox VMs"
-VMNAME="Fedora 37-1-test"
+BASEFOLDER="/home/gmarselis/VirtualBox VM"
+VMNAME="Fedora-37-4-test"
 OSTYPE="Fedora_64"
-CPUS=12
-MEMORY=16384
+CPUS=4
+MEMORY=8192
 VRAM=256
 DATE="$(date --iso)"
 FILENAME="${BASEFOLDER}/media/${VMNAME}-$date.vdi"
 DISKSIZE=120000
 HOSTPATH='/home/gmarselis/Downloads'
-#MEDIUM="$HOSTPATH/Fedora-Server-dvd-x86_64-37-1.7.iso"
-MEDIUM="$HOSTPATH/Fedora-Workstation-Live-x86_64-37-1.7.iso"
+MEDIUM="$HOSTPATH/Fedora-Server-dvd-x86_64-37-1.7.iso"
+#MEDIUM="$HOSTPATH/Fedora-Workstation-Live-x86_64-37-1.7.iso"
 AUTO_MOUNT_POINT="/mnt/downloads"
 PARAVIRT_PROVIDER="kvm" # if set to default, under linux will still be set to KVM
 CPU_HOTPLUG="off"
 BRIDGEADAPTER1="$(ifconfig | awk -F: '/^en/ { print $1 }')"
 ADDITIONS_ISO="/home/gmarselis/Downloads/VBoxGuestAdditions_7.0.6.iso"
 HOSTNAME="molly-test-1-$date"
-MACADDRESS="080027C48B18"
+MACADDRESS="080027C48B22"
     # 080027C48B18
     # 080027C48B19
     # 080027C48B20
@@ -153,9 +153,9 @@ vboxmanage closemedium disk "${FILENAME}" --delete 2> /dev/null
 
 # start vm, to test settings
 /usr/bin/VBoxManage startvm "${VMNAME}" #&& echo "/usr/bin/VBoxManage startvm \"${VMNAME}\""
-sleep ${SHUTDOWNTIMEOUT}
+#sleep ${SHUTDOWNTIMEOUT}
 # terminate VM
-/usr/bin/VBoxManage controlvm "${VMNAME}" poweroff
+#/usr/bin/VBoxManage controlvm "${VMNAME}" poweroff
 
 # Unattended Debian and debian-like systems install
     # VBoxManage unattended detect <--iso=install-iso> [--machine-readable]
