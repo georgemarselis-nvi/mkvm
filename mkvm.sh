@@ -7,14 +7,14 @@
 #       increment by 1
 
 BASEFOLDER="/home/gmarselis/VirtualBox VM"
-VMNAME="Fedora-37-4-test"
+VMNAME="test"
 OSTYPE="Fedora_64"
 CPUS=4
 MEMORY=8192
 VRAM=256
 DATE="$(date --iso)"
 FILENAME="${BASEFOLDER}/media/${VMNAME}-$date.vdi"
-DISKSIZE=120000
+DISKSIZE=60000
 HOSTPATH='/home/gmarselis/Downloads'
 MEDIUM="$HOSTPATH/Fedora-Server-dvd-x86_64-37-1.7.iso"
 #MEDIUM="$HOSTPATH/Fedora-Workstation-Live-x86_64-37-1.7.iso"
@@ -59,7 +59,7 @@ vboxmanage closemedium disk "${FILENAME}" --delete 2> /dev/null
     && echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --graphicscontroller=\"VMSVGA\" --vram=\"${VRAM}\" --accelerate-3d=\"on\" --accelerate-2d-video=\"on\""
 [[ $? -gt 0 ]] && exit
 
-# Turn PAE off # we only need this if we are booting a 32-bit OS and need more than 4GB of RAM
+# Turn PAE on # we need PAE as a prerequsite to mboot into true 64-bit mode
 /usr/bin/VBoxManage modifyvm "${VMNAME}" --pae="on" --long-mode="on" \
     && echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --pae=\"on\" --long-mode=\"on\""
 [[ $? -gt 0 ]] && exit
@@ -112,19 +112,21 @@ vboxmanage closemedium disk "${FILENAME}" --delete 2> /dev/null
 [[ $? -gt 0 ]] && exit
 
 # Attach the DVD boot image to the SATA controller
-/usr/bin/VBoxManage storageattach "${VMNAME}" --storagectl="SATA Controller" --device="0" --port="0" --type="dvddrive" --medium="${MEDIUM}" \
-    && echo "/usr/bin/VBoxManage storageattach \"${VMNAME}\" --storagectl=\"SATA Controller\" --device=\"0\" --port=\"0\" --type=\"dvddrive\" --medium=\"${MEDIUM}\""
-[[ $? -gt 0 ]] && exit
+# /usr/bin/VBoxManage storageattach "${VMNAME}" --storagectl="SATA Controller" --device="0" --port="0" --type="dvddrive" --medium="${MEDIUM}" \
+#     && echo "/usr/bin/VBoxManage storageattach \"${VMNAME}\" --storagectl=\"SATA Controller\" --device=\"0\" --port=\"0\" --type=\"dvddrive\" --medium=\"${MEDIUM}\""
+# [[ $? -gt 0 ]] && exit
 
 # Set NIC1 to bridged # ifconfig | awk -F: '/^en/ { print $1 }' for the name of the interface
 # --nic-boot-prio1="1" -> 0 is the default, 1 is the highest, 3, 4 lower; order therefore is [ 1, 0, 2, 3, 4]
-/usr/bin/VBoxManage modifyvm "${VMNAME}" --nic1="bridged"  --bridgeadapter1="${BRIDGEADAPTER1}" --cable-connected1="on" --nic-boot-prio1="1" --nic-promisc1="deny" --mac-address1="$MACADDRESS" \
-    && echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --nic1=\"bridged\"  --bridgeadapter1=\"${BRIDGEADAPTER1}\" --cable-connected1=\"on\" --nic-boot-prio1=\"1\" --nic-promisc1=\"deny\" --mac-address1=\"$MACADDRESS\""
-[[ $? -gt 0 ]] && exit
+# /usr/bin/VBoxManage modifyvm "${VMNAME}" --nic1="bridged"  --bridgeadapter1="${BRIDGEADAPTER1}" --cable-connected1="on" --nic-boot-prio1="1" --nic-promisc1="deny" --mac-address1="$MACADDRESS" \
+#     && echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --nic1=\"bridged\"  --bridgeadapter1=\"${BRIDGEADAPTER1}\" --cable-connected1=\"on\" --nic-boot-prio1=\"1\" --nic-promisc1=\"deny\" --mac-address1=\"$MACADDRESS\""
+# [[ $? -gt 0 ]] && exit
 
 # Set boot order: PXEboot from net, dvd, disk and none # --bios-pxe-debug="on"
-/usr/bin/VBoxManage modifyvm "${VMNAME}" --boot1 "net" --boot2 "dvd" --boot3 "disk" --boot4 "none" \
-    && echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --boot1 \"net\" --boot2 \"dvd\" --boot3 \"disk\" --boot4 \"none\""
+# /usr/bin/VBoxManage modifyvm "${VMNAME}" --boot1 "net" --boot2 "dvd" --boot3 "disk" --boot4 "none" \
+#     && echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --boot1 \"net\" --boot2 \"dvd\" --boot3 \"disk\" --boot4 \"none\"
+/usr/bin/VBoxManage modifyvm "${VMNAME}" --boot1 "net" --boot2 "none" --boot3 "none" --boot4 "none" --bios-pxe-debug="on" \
+    && echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --boot1 \"net\" --boot2 \"none\" --boot3 \"none\" --boot4 \"none\""
 [[ $? -gt 0 ]] && exit
 
 
@@ -152,7 +154,7 @@ vboxmanage closemedium disk "${FILENAME}" --delete 2> /dev/null
     # VBoxManage modifyvm $vmname --teleporter="on" --teleporter-port="6000" --teleporter-address="0.0.0.0" --teleporter-password=******* --teleporter-password-file="/home/captaincrunch/password.txt" --cpuid-portability-level=0
 
 # start vm, to test settings
-/usr/bin/VBoxManage startvm "${VMNAME}" #&& echo "/usr/bin/VBoxManage startvm \"${VMNAME}\""
+# /usr/bin/VBoxManage startvm "${VMNAME}" #&& echo "/usr/bin/VBoxManage startvm \"${VMNAME}\""
 #sleep ${SHUTDOWNTIMEOUT}
 # terminate VM
 #/usr/bin/VBoxManage controlvm "${VMNAME}" poweroff
@@ -180,4 +182,4 @@ vboxmanage closemedium disk "${FILENAME}" --delete 2> /dev/null
 
 # Autostarting VM During Host System Boot
     # the "1" is set by me. There are no suggestions in the manual.
-    # VBoxManage modifyvm $vmname --autostart-enabled="on" --autostart-delay="2"
+    # VBoxManage modifyvm $vmname --autostart-enabled="on" --autostart-delay="1"
