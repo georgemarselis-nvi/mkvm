@@ -75,11 +75,6 @@ vboxmanage closemedium disk "${FILENAME}" --delete 2> /dev/null
 /usr/bin/VBoxManage modifyvm "${VMNAME}" --description="Work VM for NVI" --acpi="on" --ioapic="on" --cpu-profile="host" --hpet="on" --hwvirtex="on" --apic="on" --x2apic="on" --paravirt-provider="${PARAVIRT_PROVIDER}" --nested-paging="on" --largepages="on" --vtx-vpid="on" --vtx-ux="on" --nested-hw-virt="off" --chipset="ich9" --iommu="none" --tpm-type="2.0" --bios-apic="x2apic" --rtc-use-utc="on" \
     && echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --description=\"Work VM for NVI\" --acpi=\"on\" --ioapic=\"on\" --cpu-profile=\"host\" --hpet=\"on\" --hwvirtex=\"on\" --apic=\"on\" --x2apic=\"on\" --paravirt-provider=\"${PARAVIRT_PROVIDER}\" --nested-paging=\"on\" --largepages=\"on\" --vtx-vpid=\"on\" --vtx-ux=\"on\" --nested-hw-virt=\"off\" --chipset=\"ich9\" --iommu=\"none\" --tpm-type=\"2.0\" --bios-apic=\"x2apic\" --rtc-use-utc=\"on\""
 
-# Set the boot menu
-# /usr/bin/VBoxManage modifyvm "${VMNAME} --bios-boot-menu="disabled"
-# /usr/bin/VBoxManage modifyvm "${VMNAME}" --bios-boot-menu="menuonly"
-/usr/bin/VBoxManage modifyvm "${VMNAME}" --bios-boot-menu="messageandmenu"
-
 # Spectre attacks, mitigatte 
 /usr/bin/VBoxManage modifyvm "${VMNAME}" --ibpb-on-vm-entry="on" --ibpb-on-vm-exit="on" --spec-ctrl="on" --l1d-flush-on-sched="off" \
     && echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --ibpb-on-vm-entry=\"on\" --ibpb-on-vm-exit=\"on\" --spec-ctrl=\"on\" --l1d-flush-on-sched=\"off\""
@@ -146,6 +141,11 @@ vboxmanage closemedium disk "${FILENAME}" --delete 2> /dev/null
 /usr/bin/VBoxManage sharedfolder add "${VMNAME}" --name="downloads" --hostpath="${HOSTPATH}" --automount --auto-mount-point="${AUTO_MOUNT_POINT}" \
     && echo "/usr/bin/VBoxManage sharedfolder add \"${VMNAME}\" --name=\"downloads\" --hostpath=\"${HOSTPATH}\" --automount --auto-mount-point=\"${AUTO_MOUNT_POINT}\""
 [[ $? -gt 0 ]] && exit
+
+# Alter the logo, boot time and uefi boot menu
+# --bios-boot-menu= disabled | menuonly | messageandmenu
+/usr/bin/VBoxManage modifyvm "${VMNAME}" --bios-logo-fade-in="off" --bios-logo-fade-out="off" --bios-logo-display-time=0 --bios-boot-menu="disabled" \
+    && echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --bios-logo-fade-in=\"off\" --bios-logo-fade-out=\"off\" --bios-logo-display-time=0 --bios-boot-menu=\"disabled\""
 
 # for future use
     # --teleporter-address=0.0.0.0 allows VBox to listen to *all* requests for teleportation. Limit as needed
