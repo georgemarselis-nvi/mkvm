@@ -1,0 +1,39 @@
+PROMPT 0
+NOESCAPE 1
+ALLOWOPTIONS 1
+TIMEOUT 100
+MENU HIDDEN
+
+# DEFAULT menu.c32
+DEFAULT vesamenu.c32
+# UI menu.c32
+
+
+MENU TITLE [ Boot Menu ]
+
+LABEL bootlocal
+    menu default
+    menu label Boot from ^local hard drive
+
+LABEL seperator
+    menu seperator
+    menu label ----------------------------------------
+    kernel none
+    append none
+
+LABEL fedora
+    menu label Install ^Fedora 37 desktop
+    kernel installers/ubuntu/wily/amd64/linux
+    append vga=normal initrd=installers/ubuntu/wily/amd64/initrd.gz
+
+LABEL seperator
+    menu seperator
+    menu label ----------------------------------------
+    kernel none
+    append none
+
+# example here uses raw file from github
+LABEL almalinux
+    menu label Install ^AlmaLinux 9 server
+    kernel installers/ubuntu/wily/amd64/linux
+    append vga=normal initrd=installers/ubuntu/wily/amd64/initrd.gz ks=http://pastebin.com/raw/7BPDWJuX
