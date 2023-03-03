@@ -3,6 +3,8 @@ NOESCAPE 1
 ALLOWOPTIONS 1
 TIMEOUT 100
 MENU HIDDEN
+MENU HIDDEN Space
+MENU CLEAR
 
 # DEFAULT menu.c32
 DEFAULT vesamenu.c32
@@ -15,22 +17,14 @@ LABEL bootlocal
     menu default
     menu label Boot from ^local hard drive
 
-LABEL seperator
-    menu seperator
-    menu label ----------------------------------------
-    kernel none
-    append none
+MENU SEPARATOR
 
 LABEL fedora
     menu label Install ^Fedora 37 desktop
     kernel installers/ubuntu/wily/amd64/linux
     append vga=normal initrd=installers/ubuntu/wily/amd64/initrd.gz
 
-LABEL seperator
-    menu seperator
-    menu label ----------------------------------------
-    kernel none
-    append none
+MENU SEPARATOR
 
 # example here uses raw file from github
 LABEL almalinux
