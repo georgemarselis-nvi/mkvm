@@ -6,14 +6,15 @@ MENU HIDDEN
 MENU HIDDEN Space
 MENU CLEAR
 
-# DEFAULT menu.c32
-DEFAULT vesamenu.c32
+DEFAULT menu.c32
+# DEFAULT vesamenu.c32
 # UI menu.c32
 
 
 MENU TITLE [ Boot Menu ]
 
 LABEL bootlocal
+    MENU IMMEDIATE
     menu default
     menu label Boot from ^local hard drive
 
