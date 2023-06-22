@@ -7,31 +7,34 @@
 #       increment by 1
 
 BASEFOLDER="/home/gmarselis/VirtualBox VM"
-VMNAME="test"
-OSTYPE="Fedora_64"
+VMNAME="ldap-server"
+OSTYPE="Debian_64"
 CPUS=4
-MEMORY=8192
+MEMORY=4096
 VRAM=256
 DATE="$(date --iso)"
 FILENAME="${BASEFOLDER}/media/${VMNAME}-$date.vdi"
 DISKSIZE=60000
-HOSTPATH='/home/gmarselis/Downloads'
-MEDIUM="$HOSTPATH/Fedora-Server-dvd-x86_64-37-1.7.iso"
-#MEDIUM="$HOSTPATH/Fedora-Workstation-Live-x86_64-37-1.7.iso"
+HOSTPATH='/home/gmarselis/Downloads/iso_images'
+MEDIUM="${HOSTPATH}/debian-11.6.0-amd64-netinst.iso"
+#MEDIUM="${HOSTPATH}/Fedora-Server-dvd-x86_64-37-1.7.iso"
+#MEDIUM="${HOSTPATH}/Fedora-Workstation-Live-x86_64-37-1.7.iso"
 AUTO_MOUNT_POINT="/mnt/downloads"
 PARAVIRT_PROVIDER="kvm" # if set to default, under linux will still be set to KVM
 CPU_HOTPLUG="off"
 BRIDGEADAPTER1="$(ifconfig | awk -F: '/^en/ { print $1 }')"
 ADDITIONS_ISO="/home/gmarselis/Downloads/VBoxGuestAdditions_7.0.6.iso"
 HOSTNAME="molly-test-1-$date"
-MACADDRESS="080027C48B22"
+MACADDRESS="080027C48B19"
     # 080027C48B18
     # 080027C48B19
     # 080027C48B20
     # 080027C48B21
     # 080027C48B22
 FQDN="$HOSTNAME.marsel.is"
-SHUTDOWNTIMEOUT="100"
+SHUTDOWNTIMEOUT="2"
+NETNAME="natnetwork1"
+NETWORK="192.168.15.0/24"
 
 
 # Delete the registered VM
@@ -117,6 +120,23 @@ vboxmanage closemedium disk "${FILENAME}" --delete 2> /dev/null
 #     && echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --nic1=\"bridged\"  --bridgeadapter1=\"${BRIDGEADAPTER1}\" --cable-connected1=\"on\" --nic-boot-prio1=\"1\" --nic-promisc1=\"deny\" --mac-address1=\"$MACADDRESS\""
 # [[ $? -gt 0 ]] && exit
 
+# Declare a natnetwork and
+# Set NIC1 to NAT
+# --nic-boot-prio1="1" -> 0 is the default, 1 is the highest, 3, 4 lower; order therefore is [ 1, 0, 2, 3, 4]
+/usr/bin/VBoxManage natnetwork stop   --netname "${NETNAME}"
+/usr/bin/VBoxManage natnetwork remove --netname "${NETNAME}"
+/usr/bin/VBoxManage natnetwork add    --netname "${NETNAME}" --network "${NETWORK}" --enable --dhcp on  \
+    && echo "/usr/bin/VBoxManage natnetwork add --netname \""${NETNAME}"\" --network \"${NETWORK}\" --enable --dhcp \"on\""
+/usr/bin/VBoxManage natnetwork start  --netname "${NETNAME}"  \
+    && echo "/usr/bin/VBoxManage natnetwork start --netname \""${NETNAME}"\""
+[[ $? -gt 0 ]] && exit
+
+/usr/bin/VBoxManage modifyvm "${VMNAME}" --nic1="natnetwork" --cable-connected1="on" --nic-boot-prio1="1" --nic-promisc1="deny" --mac-address1="$MACADDRESS" \
+    && echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --nic1=\"natnetwork\"  --bridgeadapter1=\"${BRIDGEADAPTER1}\" --cable-connected1=\"on\" --nic-boot-prio1=\"1\" --nic-promisc1=\"deny\" --mac-address1=\"$MACADDRESS\""
+[[ $? -gt 0 ]] && exit
+
+
+
 # Set boot order: PXEboot from net, dvd, disk and none # --bios-pxe-debug="on"
 # /usr/bin/VBoxManage modifyvm "${VMNAME}" --boot1 "net" --boot2 "dvd" --boot3 "disk" --boot4 "none" \
 #     && echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --boot1 \"net\" --boot2 \"dvd\" --boot3 \"disk\" --boot4 \"none\"
@@ -149,7 +169,7 @@ vboxmanage closemedium disk "${FILENAME}" --delete 2> /dev/null
 
 # for future use
     # --teleporter-address=0.0.0.0 allows VBox to listen to *all* requests for teleportation. Limit as needed
-    # --cpuid-portability-level=0 makes avilable all CPU features to the host? but there is no guaratnee what level presents what feature?
+    # --cpuid-portability-level=0 makes available all CPU features to the host? but there is no guaratnee what level presents what feature?
     # --teleporter-port="6000" Port 6000 is set by me, given in the manual as an example, but not official and/or standardized
     # VBoxManage modifyvm $vmname --teleporter="on" --teleporter-port="6000" --teleporter-address="0.0.0.0" --teleporter-password=******* --teleporter-password-file="/home/captaincrunch/password.txt" --cpuid-portability-level=0
 
