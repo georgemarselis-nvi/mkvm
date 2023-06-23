@@ -123,13 +123,13 @@ vboxmanage closemedium disk "${FILENAME}" --delete 2> /dev/null
 # Declare a natnetwork and
 # Set NIC1 to NAT
 # --nic-boot-prio1="1" -> 0 is the default, 1 is the highest, 3, 4 lower; order therefore is [ 1, 0, 2, 3, 4]
-/usr/bin/VBoxManage natnetwork stop   --netname "${NETNAME}"
-/usr/bin/VBoxManage natnetwork remove --netname "${NETNAME}"
-/usr/bin/VBoxManage natnetwork add    --netname "${NETNAME}" --network "${NETWORK}" --enable --dhcp on  \
-    && echo "/usr/bin/VBoxManage natnetwork add --netname \""${NETNAME}"\" --network \"${NETWORK}\" --enable --dhcp \"on\""
-/usr/bin/VBoxManage natnetwork start  --netname "${NETNAME}"  \
-    && echo "/usr/bin/VBoxManage natnetwork start --netname \""${NETNAME}"\""
-[[ $? -gt 0 ]] && exit
+# /usr/bin/VBoxManage natnetwork stop   --netname "${NETNAME}"
+# /usr/bin/VBoxManage natnetwork remove --netname "${NETNAME}"
+# /usr/bin/VBoxManage natnetwork add    --netname "${NETNAME}" --network "${NETWORK}" --enable --dhcp on  \
+#     && echo "/usr/bin/VBoxManage natnetwork add --netname \""${NETNAME}"\" --network \"${NETWORK}\" --enable --dhcp \"on\""
+# /usr/bin/VBoxManage natnetwork start  --netname "${NETNAME}"  \
+#     && echo "/usr/bin/VBoxManage natnetwork start --netname \""${NETNAME}"\""
+# [[ $? -gt 0 ]] && exit
 
 /usr/bin/VBoxManage modifyvm "${VMNAME}" --nic1="natnetwork" --cable-connected1="on" --nic-boot-prio1="1" --nic-promisc1="deny" --mac-address1="$MACADDRESS" \
     && echo "/usr/bin/VBoxManage modifyvm \"${VMNAME}\" --nic1=\"natnetwork\"  --bridgeadapter1=\"${BRIDGEADAPTER1}\" --cable-connected1=\"on\" --nic-boot-prio1=\"1\" --nic-promisc1=\"deny\" --mac-address1=\"$MACADDRESS\""
